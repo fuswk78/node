@@ -2,85 +2,62 @@
     var exec = require("child_process").exec;
     var querystring = require("querystring");
     var fs = require("fs");
+    var formidable = require("formidable");
 
-    // function start(res, data) {
-    //     console.log("start请求被开启");
-
-    //         // 2解决阻塞问题，利用回调
-    //     // var content = "empty";
-    //     // exec(
-    //     //         // "ls -lah", 
-    //     //         "find/"
-    //     //         {
-    //     //             timeout: 10000,
-    //     //             maxBuffer: 2000*1024
-    //     //         },
-    //     //         function (error, stdout, stderr) {
-    //     //             res.writeHead("200", {"Content-Type":"text/plain;charset=utf-8"});
-    //     //             res.write(stdout);
-    //     //             res.end();
-    //     //                 // content = stdout;
-    //     //         }
-    //     //     );
-            
-
-    //     // return content;
-
-    //         //1 测试阻塞
-    //     // function sleep(mili) {
-    //     //     var startTime = new Date().getTime();
-    //     //     while(new Date().getTime() < startTime + mili);
-    //     // }
-    //     // // 此时他将花费10秒时间加载
-    //     // // 同时upload也需要10秒
-    //     // // 发生了阻塞
-    //     // sleep(10000);
-
-    //     // return "start方法被调用";
-    //     // 
-    //     // 
-    //     // 
-        
-    //     // // 3form表单
-    //     // var body = '<html>'
-    //     //                 + '<head>'
-    //     //                     + '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />'
-    //     //                 + '</head>'
-    //     //                 + '<body>'
-    //     //                     + '<form action="/upload" method="post">'
-    //     //                         + '<textarea name="text" rows="20" cols="60"></textarea>'
-    //     //                         + '<input type="submit" value="Submit text" />'
-    //     //                     + '</form>'
-    //     //                 + '</body>'
-    //     //             + '</html>';
-
-    //     // res.writeHead(200, {"Content-Type": "text/html"});
-    //     // res.write(body);
-    //     // res.end();
-    //     // 
- 
-    // }
-    // 
-    
-
-    // 4.图片上传
     function start(res, data) {
         console.log("start方法被调用");
 
         var body = '<html>'
                     + '<head>'
-                    + '<meta http-equiv="Content-Type" '+ 'content="text/html; charset=UTF-8" />'+ '</head>'+ '<body>'+ '<form action="/upload" method="post">'+ '<textarea name="text" rows="20" cols="60"></textarea>'+ '<input type="submit" value="Submit text" />'+ '</form>'+ '</body>'+ '</html>';
+                        + '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />'
+                    + '</head>'
+                    + '<body>'
+                        + '<form action="/upload" enctype="multipart/form-data" method="post">'
+                            + '<input type="file" name="upload">'
+                            + '<input type="submit" value="Upload file" />'
+                        + '</form>'
+                    + '</body>'
+                + '</html>';
+
+
+                res.writeHead(200, {"Content-Type": "text/html"});
+                res.write(body);
+                res.end();
     }
 
-    function upload(res, data) {
+    function upload(res, req) {
         console.log("upload请求被开启");
-        res.writeHead("200", {
-            "Content-Type": "text/plain;charset=utf-8"
-        })
-        res.write("你发送了 " + querystring.parse(data).text);
-        
-        res.end();
+
+
+        var form = new formidable.IncomingForm(); 
+            console.log("接受了form表单提交图片");
+
+            form.parse(req, function(error, fields, files) {
+             console.log("parsing done"); 
+             fs.renameSync(files.upload.path, "./tmp/test.png"); 
+             res.writeHead(200, {"Content-Type": "text/html"}); 
+             res.write("received image:<br/>"); 
+             res.write("<img src='/show' />"); 
+             res.end();
+            });      
+    }
+
+    function show(res) {
+        console.log("show方法被调用");
+
+        fs.readFile("tmp/test.png", "binary", function(err, file) {
+            if(err) {
+                res.writeHead(500, {"Content-Type": "text/plain"});
+                res.write(err +　"\n");
+                res.end();
+            }else {
+                res.writeHead(200, {"Content-Type": "image/png"});
+                res.write(file, "binary");
+                res.end();
+            }
+        });
     }
 
     exports.start = start;
     exports.upload = upload;
+    exports.show = show;
